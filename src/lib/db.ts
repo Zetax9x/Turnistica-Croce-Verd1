@@ -7,9 +7,11 @@ export function getDB() {
   if (!_db) {
     const url = process.env.TURSO_DATABASE_URL;
     if (!url) throw new Error('TURSO_DATABASE_URL non configurato');
+    const authToken = process.env.TURSO_AUTH_TOKEN;
     _db = createClient({
       url,
-      authToken: process.env.TURSO_AUTH_TOKEN,
+      // Passa il token solo se effettivamente valorizzato (non serve con file:local.db)
+      ...(authToken ? { authToken } : {}),
     });
   }
   return _db;
