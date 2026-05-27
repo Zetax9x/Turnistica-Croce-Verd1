@@ -33,8 +33,13 @@ export interface Programmato {
   volontario: string | null;
 }
 
-export const POSTAZIONI_A = ['ascoli', 'venarotta', 'acquasanta'] as const;
-export const POSTAZIONI_B = ['venarotta', 'acquasanta', 'programmati', 'standby'] as const;
+export const POSTAZIONI_A = ['ascoli', 'venarotta', 'acquasanta', 'altro'] as const;
+export const POSTAZIONI_B = ['venarotta', 'acquasanta', 'programmati', 'standby', 'altro'] as const;
+
+/** Postazioni con slot orari liberi (stessa UI di Programmati) */
+export function isPostazioneLibera(postazione: string): boolean {
+  return postazione === 'programmati' || postazione === 'altro';
+}
 
 export const FASCE: Fascia[] = ['mattino', 'pomeriggio', 'notte'];
 
@@ -65,4 +70,5 @@ export const POSTAZIONE_LABEL: Record<string, string> = {
   acquasanta: 'Acquasanta',
   standby: 'Standby',
   programmati: 'Programmati',
+  altro: 'Altro',
 };

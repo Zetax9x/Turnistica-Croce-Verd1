@@ -65,5 +65,14 @@ export async function initDB() {
     )
   `);
 
+  // Migrazione: aggiunge colonna postazione a programmati (idempotente)
+  try {
+    await db.execute(
+      `ALTER TABLE programmati ADD COLUMN postazione TEXT DEFAULT 'programmati'`
+    );
+  } catch {
+    // Colonna già presente — ignora
+  }
+
   _initialized = true;
 }

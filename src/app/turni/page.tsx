@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   FASCE, FASCIA_LABEL, FASCIA_ORARIO,
   GIORNI_BREVI, GIORNI_LUNGHI, POSTAZIONE_LABEL,
+  isPostazioneLibera,
   type Personale, type Turno, type Fascia, type Programmato,
 } from '@/lib/types';
 import {
@@ -11,17 +12,70 @@ import {
 } from '@/lib/utils';
 import type { TipoSettimana } from '@/lib/types';
 
+// ─── Modal conflitto ─────────────────────────────────────────────────────────
+
+interface ConflictModalProps {
+  messaggio: string;
+  onAnnulla: () => void;
+  onForza: () => void;
+  saving: boolean;
+}
+
+function ConflictModal({ messaggio, onAnnulla, onForza, saving }: ConflictModalProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className="bg-amber-50 border-b border-amber-200 px-5 py-4 flex items-center gap-3">
+          <span className="text-2xl">⚠️</span>
+          <div>
+            <h3 className="font-bold text-amber-900 text-base">Conflitto turno</h3>
+            <p className="text-xs text-amber-700">Impossibile inserire la persona in questo turno</p>
+          </div>
+        </div>
+
+        {/* Corpo */}
+        <div className="px-5 py-4">
+          <p className="text-sm text-gray-700 leading-relaxed bg-red-50 border border-red-100 rounded-lg px-3 py-3">
+            {messaggio}
+          </p>
+          <p className="text-xs text-gray-500 mt-3">
+            Puoi annullare oppure forzare l&apos;inserimento ignorando il conflitto.
+          </p>
+        </div>
+
+        {/* Azioni */}
+        <div className="px-5 pb-5 flex gap-3 justify-end">
+          <button
+            onClick={onAnnulla}
+            disabled={saving}
+            className="btn-secondary"
+          >
+            Annulla
+          </button>
+          <button
+            onClick={onForza}
+            disabled={saving}
+            className="btn bg-red-600 text-white hover:bg-red-700 active:bg-red-800 font-bold tracking-wide"
+          >
+            {saving ? 'Salvataggio…' : '⚡ FORZA INSERIMENTO'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Componente cella turno ───────────────────────────────────────────────────
 
 interface ShiftCellProps {
   turno: Turno | undefined;
   personaleList: Personale[];
   ruolo: 'autista' | 'soccorritore';
-  onSave: (personale_id: number | null, volontario: string | null) => Promise<string | null>;
+  onSave: (personale_id: number | null, volontario: string | null, force?: boolean) => Promise<string | null>;
 }
 
 function ShiftCell({ turno, personaleList, ruolo, onSave }: ShiftCellProps) {
-  // Per turno autista solo autisti; per turno soccorritore tutti
   const opzioni = ruolo === 'autista'
     ? personaleList.filter(p => p.ruolo === 'autista' && p.attivo)
     : personaleList.filter(p => p.attivo);
@@ -34,39 +88,43 @@ function ShiftCell({ turno, personaleList, ruolo, onSave }: ShiftCellProps) {
   const [prevVal, setPrevVal] = useState(currentVal);
   const [volName, setVolName] = useState(turno?.volontario ?? '');
   const [saving, setSaving]   = useState(false);
-  const [errore, setErrore]   = useState<string | null>(null);
 
-  // Sincronizza quando arrivano nuovi dati dall'esterno
+  // Stato modal conflitto: memorizza cosa si stava cercando di salvare
+  const [conflictModal, setConflictModal] = useState<{
+    messaggio: string;
+    pid: number | null;
+    vol: string | null;
+  } | null>(null);
+
   useEffect(() => {
     const v = turno?.personale_id ? `p:${turno.personale_id}` : turno?.volontario ? 'v:custom' : '';
     setVal(v);
     setPrevVal(v);
     setVolName(turno?.volontario ?? '');
-    setErrore(null);
+    setConflictModal(null);
   }, [turno]);
 
-  const doSave = async (pid: number | null, vol: string | null, fallbackVal: string) => {
+  const doSave = async (pid: number | null, vol: string | null, fallbackVal: string, force = false) => {
     setSaving(true);
-    setErrore(null);
-    const err = await onSave(pid, vol);
+    const err = await onSave(pid, vol, force);
     if (err) {
-      setErrore(err);
-      setVal(fallbackVal); // ripristina selezione precedente
+      // Mostra il modal di conflitto invece del messaggio inline
+      setVal(fallbackVal);
+      setConflictModal({ messaggio: err, pid, vol });
     } else {
       setPrevVal(pid ? `p:${pid}` : vol ? 'v:custom' : '');
+      setConflictModal(null);
     }
     setSaving(false);
   };
 
   const handleChange = async (newVal: string) => {
-    setErrore(null);
     setVal(newVal);
     if (newVal === '') {
       await doSave(null, null, prevVal);
     } else if (newVal.startsWith('p:')) {
       await doSave(Number(newVal.slice(2)), null, prevVal);
     }
-    // 'v:custom' → attende che l'utente scriva il nome
   };
 
   const handleVolontarioBlur = async () => {
@@ -75,51 +133,65 @@ function ShiftCell({ turno, personaleList, ruolo, onSave }: ShiftCellProps) {
     }
   };
 
-  return (
-    <div className="flex flex-col gap-1 min-w-[140px]">
-      <select
-        className={`w-full border rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-verde-400 ${errore ? 'border-red-400' : 'border-gray-200'}`}
-        value={val}
-        onChange={e => handleChange(e.target.value)}
-        disabled={saving}
-      >
-        <option value="">– vuoto –</option>
-        <optgroup label="Personale">
-          {opzioni.map(p => (
-            <option key={p.id} value={`p:${p.id}`}>
-              {p.nome}{p.ruolo === 'autista' && ruolo === 'soccorritore' ? ' (A)' : ''}
-            </option>
-          ))}
-        </optgroup>
-        <option value="v:custom">✏️ Volontario esterno…</option>
-      </select>
+  const handleAnnulla = () => {
+    setConflictModal(null);
+    setVal(prevVal); // ripristina selezione precedente
+  };
 
-      {val === 'v:custom' && (
-        <input
-          className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-verde-400"
-          placeholder="Nome volontario"
-          value={volName}
-          onChange={e => setVolName(e.target.value)}
-          onBlur={handleVolontarioBlur}
-          onKeyDown={e => e.key === 'Enter' && handleVolontarioBlur()}
+  const handleForza = async () => {
+    if (!conflictModal) return;
+    await doSave(conflictModal.pid, conflictModal.vol, prevVal, true);
+  };
+
+  return (
+    <>
+      {/* Modal conflitto (portato fuori dal flusso normale tramite fixed) */}
+      {conflictModal && (
+        <ConflictModal
+          messaggio={conflictModal.messaggio}
+          onAnnulla={handleAnnulla}
+          onForza={handleForza}
+          saving={saving}
         />
       )}
 
-      {/* Messaggio di conflitto */}
-      {errore && (
-        <span className="text-xs text-red-600 bg-red-50 rounded px-1.5 py-0.5 leading-tight">
-          ⚠️ {errore}
-        </span>
-      )}
+      <div className="flex flex-col gap-1 min-w-[140px]">
+        <select
+          className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-verde-400"
+          value={val}
+          onChange={e => handleChange(e.target.value)}
+          disabled={saving}
+        >
+          <option value="">– vuoto –</option>
+          <optgroup label="Personale">
+            {opzioni.map(p => (
+              <option key={p.id} value={`p:${p.id}`}>
+                {p.nome}{p.ruolo === 'autista' && ruolo === 'soccorritore' ? ' (A)' : ''}
+              </option>
+            ))}
+          </optgroup>
+          <option value="v:custom">✏️ Volontario esterno…</option>
+        </select>
 
-      {/* Label assegnato (solo se non c'è errore) */}
-      {!errore && turno && (turno.personale_id || turno.volontario) && (
-        <span className="text-xs text-verde-700 font-medium truncate">
-          ✓ {turno.personale_id ? turno.personale_nome : turno.volontario}
-        </span>
-      )}
-      {saving && <span className="text-xs text-gray-400">Salvataggio…</span>}
-    </div>
+        {val === 'v:custom' && (
+          <input
+            className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-verde-400"
+            placeholder="Nome volontario"
+            value={volName}
+            onChange={e => setVolName(e.target.value)}
+            onBlur={handleVolontarioBlur}
+            onKeyDown={e => e.key === 'Enter' && handleVolontarioBlur()}
+          />
+        )}
+
+        {turno && (turno.personale_id || turno.volontario) && (
+          <span className="text-xs text-verde-700 font-medium truncate">
+            ✓ {turno.personale_id ? turno.personale_nome : turno.volontario}
+          </span>
+        )}
+        {saving && <span className="text-xs text-gray-400">Salvataggio…</span>}
+      </div>
+    </>
   );
 }
 
@@ -158,11 +230,11 @@ function StationTable({ settimana, postazione, ruolo, personaleList }: StationTa
   const getTurno = (giorno: number, fascia: Fascia) =>
     turni.find(t => t.giorno === giorno && t.fascia === fascia && t.ruolo === ruolo);
 
-  const saveTurno = async (giorno: number, fascia: Fascia, personale_id: number | null, volontario: string | null): Promise<string | null> => {
+  const saveTurno = async (giorno: number, fascia: Fascia, personale_id: number | null, volontario: string | null, force = false): Promise<string | null> => {
     const res = await fetch('/api/turni', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settimana, postazione, giorno, fascia, ruolo, personale_id, volontario }),
+      body: JSON.stringify({ settimana, postazione, giorno, fascia, ruolo, personale_id, volontario, force }),
     });
     if (!res.ok) {
       const data = await res.json();
@@ -212,7 +284,7 @@ function StationTable({ settimana, postazione, ruolo, personaleList }: StationTa
                       turno={getTurno(dayNum, fascia)}
                       personaleList={personaleList}
                       ruolo={ruolo}
-                      onSave={(pid, vol) => saveTurno(dayNum, fascia, pid, vol)}
+                      onSave={(pid, vol, force) => saveTurno(dayNum, fascia, pid, vol, force)}
                     />
                   </td>
                 ))}
@@ -229,6 +301,7 @@ function StationTable({ settimana, postazione, ruolo, personaleList }: StationTa
 
 interface ProgrammatiTableProps {
   settimana: string;
+  postazione: string;
   personaleList: Personale[];
 }
 
@@ -244,7 +317,7 @@ interface SlotRow {
   saving?: boolean;
 }
 
-function ProgrammatiTable({ settimana, personaleList }: ProgrammatiTableProps) {
+function ProgrammatiTable({ settimana, postazione, personaleList }: ProgrammatiTableProps) {
   const [programmati, setProgrammati] = useState<Programmato[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingSlot, setPendingSlot] = useState<Partial<SlotRow> | null>(null);
@@ -252,14 +325,14 @@ function ProgrammatiTable({ settimana, personaleList }: ProgrammatiTableProps) {
   const fetchProgrammati = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/programmati?settimana=${settimana}`);
+      const res = await fetch(`/api/programmati?settimana=${settimana}&postazione=${postazione}`);
       const data = await res.json();
       setProgrammati(Array.isArray(data) ? data : []);
     } catch {
       setProgrammati([]);
     }
     setLoading(false);
-  }, [settimana]);
+  }, [settimana, postazione]);
 
   useEffect(() => { fetchProgrammati(); }, [fetchProgrammati]);
 
@@ -276,6 +349,7 @@ function ProgrammatiTable({ settimana, personaleList }: ProgrammatiTableProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         settimana,
+        postazione,
         giorno: pendingSlot.giorno,
         ora_inizio: pendingSlot.ora_inizio || null,
         ora_fine: pendingSlot.ora_fine || null,
@@ -482,7 +556,7 @@ export default function TurniPage() {
     setSettimana(toISO(d));
   };
 
-  const isProgrammati = postazione === 'programmati';
+  const isProgrammati = isPostazioneLibera(postazione);
 
   return (
     <div>
@@ -560,7 +634,12 @@ export default function TurniPage() {
           </div>
 
           {isProgrammati ? (
-            <ProgrammatiTable settimana={settimana} personaleList={personaleList} />
+            <ProgrammatiTable
+              key={`${settimana}-${postazione}`}
+              settimana={settimana}
+              postazione={postazione}
+              personaleList={personaleList}
+            />
           ) : (
             <StationTable
               key={`${settimana}-${postazione}-${ruolo}`}

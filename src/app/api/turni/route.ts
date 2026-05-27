@@ -121,13 +121,13 @@ export async function POST(req: NextRequest) {
     await initDB();
     const db = getDB();
     const body = await req.json();
-    const { settimana, postazione, giorno, fascia, ruolo, personale_id, volontario } = body;
+    const { settimana, postazione, giorno, fascia, ruolo, personale_id, volontario, force } = body;
 
     if (!settimana || !postazione || !giorno || !fascia || !ruolo)
       return NextResponse.json({ error: 'Dati non validi' }, { status: 400 });
 
-    // ── Controllo conflitti (solo per personale registrato) ──
-    if (personale_id) {
+    // ── Controllo conflitti (saltato se force === true) ──────
+    if (personale_id && !force) {
       const conflitto = await checkConflicts(db, settimana, postazione, giorno, fascia, ruolo, personale_id);
       if (conflitto)
         return NextResponse.json({ error: conflitto }, { status: 409 });

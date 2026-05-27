@@ -89,7 +89,8 @@ export async function GET(req: NextRequest) {
 
     // ── Programmati ───────────────────────────────────────────────
     const progRes = await db.execute({
-      sql: `SELECT settimana, giorno, ora_inizio, ora_fine
+      sql: `SELECT settimana, giorno, ora_inizio, ora_fine,
+                   COALESCE(postazione, 'programmati') AS postazione
             FROM programmati
             WHERE personale_id = ?
             ORDER BY settimana, giorno`,
@@ -111,7 +112,7 @@ export async function GET(req: NextRequest) {
       }
       rows.push({
         data:          toISO(data),
-        postazione:    'programmati',
+        postazione:    r.postazione as string,   // 'programmati' o 'altro'
         fascia:        null,
         orario:        inizio && fine ? `${inizio} – ${fine}` : '–',
         ore,
