@@ -35,7 +35,10 @@ export default function ReportPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/personale').then(r => r.json()).then(setPersonaleList);
+    fetch('/api/personale')
+      .then(r => r.json())
+      .then(data => setPersonaleList(Array.isArray(data) ? data : []))
+      .catch(() => setPersonaleList([]));
   }, []);
 
   const handleGenera = async () => {

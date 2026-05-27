@@ -17,9 +17,15 @@ export default function PersonalePage() {
 
   const fetchPersonale = async () => {
     setLoading(true);
-    const res = await fetch('/api/personale');
-    setLista(await res.json());
-    setLoading(false);
+    try {
+      const res = await fetch('/api/personale');
+      const data = await res.json();
+      setLista(Array.isArray(data) ? data : []);
+    } catch {
+      setLista([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchPersonale(); }, []);

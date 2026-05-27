@@ -455,7 +455,10 @@ export default function TurniPage() {
   }, [settimana]);
 
   useEffect(() => {
-    fetch('/api/personale').then(r => r.json()).then(setPersonaleList);
+    fetch('/api/personale')
+      .then(r => r.json())
+      .then(data => setPersonaleList(Array.isArray(data) ? data : []))
+      .catch(() => setPersonaleList([]));
   }, []);
 
   // Quando cambia la settimana, resetta la postazione se non disponibile
