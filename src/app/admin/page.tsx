@@ -113,7 +113,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-end gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-[auto_auto_auto] gap-4 items-end">
               {/* Selettore settimana */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -121,7 +121,7 @@ export default function AdminPage() {
                 </label>
                 <input
                   type="date"
-                  className="input w-48"
+                  className="input w-full sm:w-48"
                   value={formSett}
                   onChange={e => {
                     // Normalizza al lunedì della settimana selezionata
@@ -142,7 +142,7 @@ export default function AdminPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setFormTipo('A')}
-                    className={`px-6 py-2 rounded-lg font-semibold text-sm border-2 transition-colors ${
+                    className={`flex-1 sm:flex-none px-6 py-2 rounded-lg font-semibold text-sm border-2 transition-colors ${
                       formTipo === 'A'
                         ? 'bg-blue-600 border-blue-600 text-white'
                         : 'bg-white border-gray-300 text-gray-600 hover:border-blue-400'
@@ -152,7 +152,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={() => setFormTipo('B')}
-                    className={`px-6 py-2 rounded-lg font-semibold text-sm border-2 transition-colors ${
+                    className={`flex-1 sm:flex-none px-6 py-2 rounded-lg font-semibold text-sm border-2 transition-colors ${
                       formTipo === 'B'
                         ? 'bg-purple-600 border-purple-600 text-white'
                         : 'bg-white border-gray-300 text-gray-600 hover:border-purple-400'
@@ -168,7 +168,7 @@ export default function AdminPage() {
                 <button
                   onClick={handleSave}
                   disabled={saving || !isDirty}
-                  className={`btn-primary ${(!isDirty && !saving) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`btn-primary w-full sm:w-auto ${(!isDirty && !saving) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {saving ? 'Salvataggio…' : '💾 Salva'}
                 </button>
@@ -211,13 +211,13 @@ export default function AdminPage() {
               : 'Basata sulla configurazione attiva'}
           </p>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left px-3 py-2 font-medium text-gray-600">Settimana</th>
                   <th className="text-center px-3 py-2 font-medium text-gray-600 w-20">Tipo</th>
-                  <th className="text-left px-3 py-2 font-medium text-gray-600">Postazioni attive</th>
+                  <th className="text-left px-3 py-2 font-medium text-gray-600 hidden sm:table-cell">Postazioni attive</th>
                 </tr>
               </thead>
               <tbody>
@@ -248,7 +248,7 @@ export default function AdminPage() {
                           {tipo}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-gray-600">
+                      <td className="px-3 py-2 text-gray-600 hidden sm:table-cell">
                         {postazioni.map(p => POSTAZIONE_LABEL[p]).join(' · ')}
                       </td>
                     </tr>

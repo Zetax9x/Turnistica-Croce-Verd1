@@ -255,45 +255,80 @@ function StationTable({ settimana, postazione, ruolo, personaleList }: StationTa
   );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="bg-gray-50">
-            <th className="border border-gray-200 px-3 py-2 text-left font-medium text-gray-600 w-28">Giorno</th>
-            {FASCE.map(f => (
-              <th key={f} className="border border-gray-200 px-3 py-2 text-center font-medium text-gray-600 min-w-[160px]">
-                <div>{FASCIA_LABEL[f]}</div>
-                <div className="text-xs text-gray-400 font-normal">{FASCIA_ORARIO[f]}</div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {GIORNI_BREVI.map((g, i) => {
-            const dayNum = i + 1;
-            const data = getDayDate(settimana, dayNum);
-            return (
-              <tr key={dayNum} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                <td className="border border-gray-200 px-3 py-2">
-                  <div className="font-medium">{GIORNI_LUNGHI[i]}</div>
-                  <div className="text-xs text-gray-400">{formatDateIT(data)}</div>
-                </td>
-                {FASCE.map(fascia => (
-                  <td key={fascia} className="border border-gray-200 px-2 py-2 align-top">
-                    <ShiftCell
-                      turno={getTurno(dayNum, fascia)}
-                      personaleList={personaleList}
-                      ruolo={ruolo}
-                      onSave={(pid, vol, force) => saveTurno(dayNum, fascia, pid, vol, force)}
-                    />
+    <>
+      {/* ── Vista MOBILE: una card per giorno ── */}
+      <div className="md:hidden space-y-3">
+        {GIORNI_BREVI.map((_, i) => {
+          const dayNum = i + 1;
+          const data = getDayDate(settimana, dayNum);
+          return (
+            <div key={dayNum} className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+              <div className="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-200">
+                <span className="font-semibold text-sm">{GIORNI_LUNGHI[i]}</span>
+                <span className="text-xs text-gray-400">{formatDateIT(data)}</span>
+              </div>
+              {FASCE.map((fascia, fi) => (
+                <div key={fascia} className={`px-4 py-3 ${fi < FASCE.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">
+                      {FASCIA_LABEL[fascia]}
+                    </span>
+                    <span className="text-xs text-gray-400">{FASCIA_ORARIO[fascia]}</span>
+                  </div>
+                  <ShiftCell
+                    turno={getTurno(dayNum, fascia)}
+                    personaleList={personaleList}
+                    ruolo={ruolo}
+                    onSave={(pid, vol, force) => saveTurno(dayNum, fascia, pid, vol, force)}
+                  />
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Vista DESKTOP: tabella ── */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="border border-gray-200 px-3 py-2 text-left font-medium text-gray-600 w-28">Giorno</th>
+              {FASCE.map(f => (
+                <th key={f} className="border border-gray-200 px-3 py-2 text-center font-medium text-gray-600 min-w-[160px]">
+                  <div>{FASCIA_LABEL[f]}</div>
+                  <div className="text-xs text-gray-400 font-normal">{FASCIA_ORARIO[f]}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {GIORNI_BREVI.map((g, i) => {
+              const dayNum = i + 1;
+              const data = getDayDate(settimana, dayNum);
+              return (
+                <tr key={dayNum} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                  <td className="border border-gray-200 px-3 py-2">
+                    <div className="font-medium">{GIORNI_LUNGHI[i]}</div>
+                    <div className="text-xs text-gray-400">{formatDateIT(data)}</div>
                   </td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                  {FASCE.map(fascia => (
+                    <td key={fascia} className="border border-gray-200 px-2 py-2 align-top">
+                      <ShiftCell
+                        turno={getTurno(dayNum, fascia)}
+                        personaleList={personaleList}
+                        ruolo={ruolo}
+                        onSave={(pid, vol, force) => saveTurno(dayNum, fascia, pid, vol, force)}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -560,44 +595,36 @@ export default function TurniPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Turni</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Compilazione turnazione settimanale</p>
-        </div>
-
-        {/* Selettore settimana */}
-        <div className="flex items-center gap-2 ml-auto bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
-          <button onClick={prevWeek} className="p-1 hover:bg-gray-100 rounded-lg">◀</button>
-          <div className="text-center min-w-[200px]">
-            <div className="font-semibold text-sm">{getWeekLabel(settimana)}</div>
-            <div className="flex items-center justify-center gap-2 mt-0.5">
-              {loadingTipo ? (
-                <span className="text-xs text-gray-400">…</span>
-              ) : (
-                <>
-                  <span className={tipoSettimana === 'A' ? 'badge-a' : 'badge-b'}>
-                    Settimana {tipoSettimana}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    {tipoSettimana === 'A' ? 'Ascoli · Venarotta · Acquasanta' : 'Venarotta · Acquasanta · Programmati · Standby'}
-                  </span>
-                </>
-              )}
-            </div>
+      {/* ── Selettore settimana (full-width su mobile) ── */}
+      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm mb-4">
+        <button onClick={prevWeek} className="p-2 hover:bg-gray-100 rounded-lg text-lg leading-none flex-shrink-0">◀</button>
+        <div className="flex-1 text-center">
+          <div className="font-semibold text-sm">{getWeekLabel(settimana)}</div>
+          <div className="flex items-center justify-center gap-2 mt-0.5 flex-wrap">
+            {loadingTipo ? (
+              <span className="text-xs text-gray-400">…</span>
+            ) : (
+              <>
+                <span className={tipoSettimana === 'A' ? 'badge-a' : 'badge-b'}>
+                  Settimana {tipoSettimana}
+                </span>
+                <span className="text-xs text-gray-400 hidden sm:inline">
+                  {tipoSettimana === 'A' ? 'Ascoli · Venarotta · Acquasanta' : 'Venarotta · Acquasanta · Programmati · Standby'}
+                </span>
+              </>
+            )}
           </div>
-          <button onClick={nextWeek} className="p-1 hover:bg-gray-100 rounded-lg">▶</button>
         </div>
+        <button onClick={nextWeek} className="p-2 hover:bg-gray-100 rounded-lg text-lg leading-none flex-shrink-0">▶</button>
       </div>
 
-      {/* Tabs postazione */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      {/* ── Tabs postazione (scroll orizzontale su mobile) ── */}
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
         {postazioni.map(p => (
           <button
             key={p}
             onClick={() => setPostazione(p)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${
+            className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${
               postazione === p
                 ? 'bg-verde-600 text-white border-verde-600'
                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
@@ -610,17 +637,17 @@ export default function TurniPage() {
 
       {postazione && (
         <div className="card">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <h2 className="font-bold text-lg text-gray-800">{POSTAZIONE_LABEL[postazione]}</h2>
 
             {/* Tabs ruolo (non per programmati) */}
             {!isProgrammati && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 {(['autista', 'soccorritore'] as const).map(r => (
                   <button
                     key={r}
                     onClick={() => setRuolo(r)}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       ruolo === r
                         ? r === 'autista' ? 'bg-amber-100 text-amber-800' : 'bg-cyan-100 text-cyan-800'
                         : 'bg-gray-100 text-gray-500 hover:bg-gray-200'

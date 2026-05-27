@@ -64,13 +64,13 @@ export default function ReportPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Report mensile</h1>
           <p className="text-sm text-gray-500 mt-1">Ore lavorate per dipendente</p>
         </div>
         {report && (
-          <button onClick={handleStampa} className="btn-secondary print:hidden">🖨️ Stampa</button>
+          <button onClick={handleStampa} className="btn-secondary print:hidden shrink-0">🖨️ Stampa</button>
         )}
       </div>
 
@@ -162,64 +162,101 @@ export default function ReportPage() {
               Nessun turno trovato per {personaSelezionata?.nome} nel mese selezionato.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b-2 border-gray-200">
-                    <th className="text-left px-3 py-2 font-semibold text-gray-700">Data</th>
-                    <th className="text-left px-3 py-2 font-semibold text-gray-700">Postazione</th>
-                    <th className="text-left px-3 py-2 font-semibold text-gray-700">Fascia / Orario</th>
-                    <th className="text-left px-3 py-2 font-semibold text-gray-700">Ruolo coperto</th>
-                    <th className="text-right px-3 py-2 font-semibold text-gray-700">Ore</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.righe.map((r, idx) => (
-                    <tr key={idx} className={`border-b border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                      <td className="px-3 py-2 font-medium">{formatData(r.data)}</td>
-                      <td className="px-3 py-2">
+            <>
+              {/* ── Card layout (mobile) ── */}
+              <div className="md:hidden space-y-2">
+                {report.righe.map((r, idx) => (
+                  <div key={idx} className="bg-gray-50 rounded-xl px-4 py-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-sm text-gray-800">{formatData(r.data)}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">
                         {POSTAZIONE_LABEL[r.postazione] ?? r.postazione}
-                      </td>
-                      <td className="px-3 py-2">
-                        {r.fascia === 'giornata' ? (
-                          <span>
-                            <span className="font-medium text-verde-700">Giornata intera</span>
-                            <span className="text-gray-400 ml-1 text-xs">{r.orario}</span>
-                          </span>
-                        ) : r.fascia ? (
-                          <span>
-                            <span className="font-medium">{FASCIA_LABEL[r.fascia as keyof typeof FASCIA_LABEL]}</span>
-                            <span className="text-gray-400 ml-1 text-xs">{r.orario}</span>
-                          </span>
-                        ) : (
-                          <span className="text-gray-600">{r.orario}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">
-                        {r.ruolo_coperto ? (
-                          <span className={r.ruolo_coperto === 'autista' ? 'badge-autista' : 'badge-soccorritore'}>
+                        {r.ruolo_coperto && (
+                          <span className={`ml-2 ${r.ruolo_coperto === 'autista' ? 'badge-autista' : 'badge-soccorritore'}`}>
                             {r.ruolo_coperto}
                           </span>
-                        ) : (
-                          <span className="text-gray-400">–</span>
                         )}
-                      </td>
-                      <td className="px-3 py-2 text-right font-semibold">
-                        {r.ore > 0 ? `${r.ore}h` : '–'}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {r.fascia === 'giornata' ? (
+                          <span className="text-verde-700 font-medium">Giornata intera</span>
+                        ) : r.fascia ? (
+                          FASCIA_LABEL[r.fascia as keyof typeof FASCIA_LABEL]
+                        ) : null}
+                        {r.orario && <span className="text-gray-400 ml-1">{r.orario}</span>}
+                      </div>
+                    </div>
+                    <div className="font-bold text-verde-700 text-sm shrink-0">
+                      {r.ore > 0 ? `${r.ore}h` : '–'}
+                    </div>
+                  </div>
+                ))}
+                <div className="bg-verde-50 rounded-xl px-4 py-3 flex items-center justify-between border border-verde-200">
+                  <span className="font-bold text-verde-800">TOTALE</span>
+                  <span className="font-bold text-verde-800 text-lg">{report.totale_ore}h</span>
+                </div>
+              </div>
+
+              {/* ── Table layout (desktop) ── */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b-2 border-gray-200">
+                      <th className="text-left px-3 py-2 font-semibold text-gray-700">Data</th>
+                      <th className="text-left px-3 py-2 font-semibold text-gray-700">Postazione</th>
+                      <th className="text-left px-3 py-2 font-semibold text-gray-700">Fascia / Orario</th>
+                      <th className="text-left px-3 py-2 font-semibold text-gray-700">Ruolo coperto</th>
+                      <th className="text-right px-3 py-2 font-semibold text-gray-700">Ore</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.righe.map((r, idx) => (
+                      <tr key={idx} className={`border-b border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                        <td className="px-3 py-2 font-medium">{formatData(r.data)}</td>
+                        <td className="px-3 py-2">
+                          {POSTAZIONE_LABEL[r.postazione] ?? r.postazione}
+                        </td>
+                        <td className="px-3 py-2">
+                          {r.fascia === 'giornata' ? (
+                            <span>
+                              <span className="font-medium text-verde-700">Giornata intera</span>
+                              <span className="text-gray-400 ml-1 text-xs">{r.orario}</span>
+                            </span>
+                          ) : r.fascia ? (
+                            <span>
+                              <span className="font-medium">{FASCIA_LABEL[r.fascia as keyof typeof FASCIA_LABEL]}</span>
+                              <span className="text-gray-400 ml-1 text-xs">{r.orario}</span>
+                            </span>
+                          ) : (
+                            <span className="text-gray-600">{r.orario}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          {r.ruolo_coperto ? (
+                            <span className={r.ruolo_coperto === 'autista' ? 'badge-autista' : 'badge-soccorritore'}>
+                              {r.ruolo_coperto}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">–</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold">
+                          {r.ore > 0 ? `${r.ore}h` : '–'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-verde-50 border-t-2 border-verde-200">
+                      <td colSpan={4} className="px-3 py-3 font-bold text-verde-800">TOTALE</td>
+                      <td className="px-3 py-3 text-right font-bold text-verde-800 text-base">
+                        {report.totale_ore}h
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-verde-50 border-t-2 border-verde-200">
-                    <td colSpan={4} className="px-3 py-3 font-bold text-verde-800">TOTALE</td>
-                    <td className="px-3 py-3 text-right font-bold text-verde-800 text-base">
-                      {report.totale_ore}h
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                  </tfoot>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}

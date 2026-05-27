@@ -83,13 +83,13 @@ export default function PersonalePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Personale</h1>
           <p className="text-sm text-gray-500 mt-1">Gestione autisti e soccorritori</p>
         </div>
-        <button onClick={openAdd} className="btn-primary">
-          + Aggiungi persona
+        <button onClick={openAdd} className="btn-primary shrink-0">
+          + Aggiungi
         </button>
       </div>
 
@@ -156,8 +156,8 @@ export default function PersonalePage() {
                     <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="py-2.5 font-medium">{p.nome}</td>
                       <td className="py-2.5 text-right">
-                        <button onClick={() => openEdit(p)} className="text-verde-600 hover:text-verde-700 text-xs mr-3">Modifica</button>
-                        <button onClick={() => handleDelete(p.id, p.nome)} className="text-red-500 hover:text-red-600 text-xs">Elimina</button>
+                        <button onClick={() => openEdit(p)} className="text-verde-600 hover:text-verde-700 text-xs px-2 py-1.5 rounded hover:bg-verde-50 mr-1">Modifica</button>
+                        <button onClick={() => handleDelete(p.id, p.nome)} className="text-red-500 hover:text-red-600 text-xs px-2 py-1.5 rounded hover:bg-red-50">Elimina</button>
                       </td>
                     </tr>
                   ))}
@@ -187,8 +187,8 @@ export default function PersonalePage() {
                     <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="py-2.5 font-medium">{p.nome}</td>
                       <td className="py-2.5 text-right">
-                        <button onClick={() => openEdit(p)} className="text-verde-600 hover:text-verde-700 text-xs mr-3">Modifica</button>
-                        <button onClick={() => handleDelete(p.id, p.nome)} className="text-red-500 hover:text-red-600 text-xs">Elimina</button>
+                        <button onClick={() => openEdit(p)} className="text-verde-600 hover:text-verde-700 text-xs px-2 py-1.5 rounded hover:bg-verde-50 mr-1">Modifica</button>
+                        <button onClick={() => handleDelete(p.id, p.nome)} className="text-red-500 hover:text-red-600 text-xs px-2 py-1.5 rounded hover:bg-red-50">Elimina</button>
                       </td>
                     </tr>
                   ))}
