@@ -170,7 +170,7 @@ function ShiftCell({ turno, personaleList, ruolo, onSave }: ShiftCellProps) {
               </option>
             ))}
           </optgroup>
-          <option value="v:custom">✏️ Volontario esterno…</option>
+          <option value="v:custom">✏️ Volontario…</option>
         </select>
 
         {val === 'v:custom' && (
@@ -538,6 +538,126 @@ function ProgrammatiTable({ settimana, postazione, personaleList }: ProgrammatiT
   );
 }
 
+// ─── Modal Panoramica ─────────────────────────────────────────────────────────
+
+interface PanoramicaEntry {
+  nome: string;
+  ruolo: string;
+  ore: number;
+  nTurni: number;
+  isVolontario: boolean;
+}
+
+interface PanoramicaModalProps {
+  settimana: string;
+  onClose: () => void;
+}
+
+function PanoramicaModal({ settimana, onClose }: PanoramicaModalProps) {
+  const [dati, setDati]       = useState<PanoramicaEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    setError('');
+    fetch(`/api/panoramica?settimana=${settimana}`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setDati(data);
+        else setError(data?.error ?? 'Errore caricamento');
+      })
+      .catch(() => setError('Errore di rete'))
+      .finally(() => setLoading(false));
+  }, [settimana]);
+
+  const totaleOre = Math.round(dati.reduce((s, d) => s + d.ore, 0) * 10) / 10;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50" onClick={onClose}>
+      <div
+        className="bg-white w-full sm:max-w-lg sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90dvh] flex flex-col rounded-t-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+          <div>
+            <h3 className="font-bold text-gray-800 text-base">📊 Panoramica settimana</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{getWeekLabel(settimana)}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 text-xl leading-none">✕</button>
+        </div>
+
+        {/* Corpo */}
+        <div className="overflow-y-auto flex-1 px-5 py-4">
+          {loading && (
+            <div className="py-8 text-center text-gray-400 text-sm">Caricamento…</div>
+          )}
+          {error && (
+            <div className="py-4 text-center text-red-500 text-sm">{error}</div>
+          )}
+          {!loading && !error && dati.length === 0 && (
+            <div className="py-8 text-center text-gray-400 text-sm">
+              Nessun turno assegnato questa settimana.
+            </div>
+          )}
+          {!loading && !error && dati.length > 0 && (
+            <div className="space-y-2">
+              {dati.map((d, i) => (
+                <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
+                  {/* Icona ruolo */}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 ${
+                    d.isVolontario
+                      ? 'bg-gray-100 text-gray-500'
+                      : d.ruolo === 'autista'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-cyan-100 text-cyan-700'
+                  }`}>
+                    {d.isVolontario ? '👤' : d.ruolo === 'autista' ? '🚗' : '🏥'}
+                  </div>
+
+                  {/* Nome + badge */}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm text-gray-800 truncate">{d.nome}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {d.isVolontario ? (
+                        <span className="text-xs text-gray-400">Volontario</span>
+                      ) : (
+                        <span className={`text-xs ${d.ruolo === 'autista' ? 'text-amber-600' : 'text-cyan-600'}`}>
+                          {d.ruolo.charAt(0).toUpperCase() + d.ruolo.slice(1)}
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-300">·</span>
+                      <span className="text-xs text-gray-400">{d.nTurni} {d.nTurni === 1 ? 'turno' : 'turni'}</span>
+                    </div>
+                  </div>
+
+                  {/* Ore */}
+                  <div className={`text-right shrink-0 ${d.ore >= 24 ? 'text-red-600' : d.ore >= 12 ? 'text-verde-700' : 'text-gray-700'}`}>
+                    <span className="font-bold text-lg leading-none">{d.ore}</span>
+                    <span className="text-xs font-medium ml-0.5">h</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer con totale */}
+        {!loading && dati.length > 0 && (
+          <div className="shrink-0 border-t border-gray-100 px-5 py-3 bg-gray-50 flex items-center justify-between">
+            <span className="text-sm text-gray-500">{dati.length} persone assegnate</span>
+            <div className="text-right">
+              <span className="text-xs text-gray-400 mr-1">Totale ore:</span>
+              <span className="font-bold text-verde-700">{totaleOre}h</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Pagina principale Turni ─────────────────────────────────────────────────
 
 export default function TurniPage() {
@@ -548,6 +668,7 @@ export default function TurniPage() {
   const [personaleList, setPersonaleList]   = useState<Personale[]>([]);
   const [tipoSettimana, setTipoSettimana]   = useState<TipoSettimana>('A');
   const [loadingTipo, setLoadingTipo]       = useState(true);
+  const [showPanoramica, setShowPanoramica] = useState(false);
 
   const postazioni = getPostazioni(tipoSettimana);
 
@@ -595,8 +716,12 @@ export default function TurniPage() {
 
   return (
     <div>
+      {showPanoramica && (
+        <PanoramicaModal settimana={settimana} onClose={() => setShowPanoramica(false)} />
+      )}
+
       {/* ── Selettore settimana (full-width su mobile) ── */}
-      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm mb-4">
+      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 shadow-sm mb-2">
         <button onClick={prevWeek} className="p-2 hover:bg-gray-100 rounded-lg text-lg leading-none flex-shrink-0">◀</button>
         <div className="flex-1 text-center">
           <div className="font-semibold text-sm">{getWeekLabel(settimana)}</div>
@@ -616,6 +741,17 @@ export default function TurniPage() {
           </div>
         </div>
         <button onClick={nextWeek} className="p-2 hover:bg-gray-100 rounded-lg text-lg leading-none flex-shrink-0">▶</button>
+      </div>
+
+      {/* ── Pulsante Panoramica ── */}
+      <div className="flex justify-end mb-3">
+        <button
+          onClick={() => setShowPanoramica(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-colors"
+        >
+          <span>📊</span>
+          <span>Panoramica</span>
+        </button>
       </div>
 
       {/* ── Tabs postazione (scroll orizzontale su mobile) ── */}
