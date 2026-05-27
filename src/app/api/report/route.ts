@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
     // Costruisce le righe finali con aggregazione mattino+pomeriggio
     const rows: Record<string, unknown>[] = [];
 
-    for (const turniGiorno of perGiornoPostazione.values()) {
+    for (const turniGiorno of Array.from(perGiornoPostazione.values())) {
       const hasMattino   = turniGiorno.some(t => t.fascia === 'mattino');
       const hasPomeriggio = turniGiorno.some(t => t.fascia === 'pomeriggio');
       const hasNotte     = turniGiorno.some(t => t.fascia === 'notte');
