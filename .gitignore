@@ -1,1 +1,21 @@
+# Dipendenze
 node_modules
+
+# Build / output Next.js
+/.next/
+/out/
+
+# Cache TypeScript
+*.tsbuildinfo
+
+# Database SQLite locale di sviluppo
+local.db
+local.db-*
+
+# Variabili d'ambiente locali (NON .env.example, che va versionato)
+.env*.local
+
+# Log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
