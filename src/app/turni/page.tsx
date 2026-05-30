@@ -231,16 +231,34 @@ function StationTable({ settimana, postazione, ruolo, personaleList }: StationTa
     turni.find(t => t.giorno === giorno && t.fascia === fascia && t.ruolo === ruolo);
 
   const saveTurno = async (giorno: number, fascia: Fascia, personale_id: number | null, volontario: string | null, force = false): Promise<string | null> => {
+    // Snapshot per eventuale rollback in caso di errore/conflitto
+    const snapshot = turni;
+
+    // ── Aggiornamento ottimistico: la cella cambia subito, senza attendere il server ──
+    const persona = personale_id ? personaleList.find(p => p.id === personale_id) : null;
+    setTurni(curr => {
+      const others = curr.filter(t => !(t.giorno === giorno && t.fascia === fascia && t.ruolo === ruolo));
+      if (!personale_id && !volontario) return others; // svuotato
+      const existing = curr.find(t => t.giorno === giorno && t.fascia === fascia && t.ruolo === ruolo);
+      return [...others, {
+        ...(existing ?? { id: -Date.now(), settimana, postazione, giorno, fascia, ruolo }),
+        personale_id: personale_id ?? null,
+        volontario: volontario ?? null,
+        personale_nome: persona?.nome,
+        personale_ruolo: persona?.ruolo,
+      } as Turno];
+    });
+
     const res = await fetch('/api/turni', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settimana, postazione, giorno, fascia, ruolo, personale_id, volontario, force }),
     });
     if (!res.ok) {
+      setTurni(snapshot); // rollback della modifica ottimistica
       const data = await res.json();
       return data?.error ?? 'Errore salvataggio';
     }
-    await fetchTurni();
     return null;
   };
 
