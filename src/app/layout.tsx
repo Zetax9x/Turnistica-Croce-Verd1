@@ -27,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Nav visibile solo su desktop */}
             <nav className="hidden md:flex items-center gap-1 ml-auto">
               <Link href="/turni"     className="px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-verde-600 transition-colors">Turni</Link>
+              <Link href="/importa"   className="px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-verde-600 transition-colors">Importa</Link>
               <Link href="/personale" className="px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-verde-600 transition-colors">Personale</Link>
               <Link href="/report"    className="px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-verde-600 transition-colors">Report</Link>
               <Link href="/admin"     className="px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-verde-600 transition-colors opacity-75 hover:opacity-100">⚙️</Link>
