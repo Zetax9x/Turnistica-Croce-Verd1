@@ -9,7 +9,7 @@ import { getDB, initDB } from '@/lib/db';
  *   • Mattino (6h) + Pomeriggio (6h) stesso giorno stessa postazione → Giornata (12h)
  *   • Notte = 12h sempre separata
  *   • Programmati/Altro: ore calcolate da ora_inizio–ora_fine
- *   • Include anche i volontari esterni (nome libero, senza personale_id)
+ *   • Solo personale registrato — i volontari esterni sono esclusi
  */
 export async function GET(req: NextRequest) {
   try {
@@ -26,9 +26,9 @@ export async function GET(req: NextRequest) {
       sql: `SELECT t.personale_id, t.volontario, t.giorno, t.postazione, t.fascia,
                    p.nome, p.ruolo
             FROM turni t
-            LEFT JOIN personale p ON t.personale_id = p.id
+            JOIN personale p ON t.personale_id = p.id
             WHERE t.settimana = ?
-              AND (t.personale_id IS NOT NULL OR (t.volontario IS NOT NULL AND t.volontario != ''))
+              AND t.personale_id IS NOT NULL
             ORDER BY t.giorno, t.fascia`,
       args: [settimana],
     });
@@ -99,9 +99,9 @@ export async function GET(req: NextRequest) {
       sql: `SELECT pr.personale_id, pr.volontario, pr.ora_inizio, pr.ora_fine,
                    p.nome, p.ruolo
             FROM programmati pr
-            LEFT JOIN personale p ON pr.personale_id = p.id
+            JOIN personale p ON pr.personale_id = p.id
             WHERE pr.settimana = ?
-              AND (pr.personale_id IS NOT NULL OR (pr.volontario IS NOT NULL AND pr.volontario != ''))`,
+              AND pr.personale_id IS NOT NULL`,
       args: [settimana],
     });
 
